@@ -18,6 +18,30 @@ set -euo pipefail
 
 # agnt - Agent management script
 
+# Ensure tmux is in PATH (especially important for MSYS2)
+setup_tmux_path() {
+    # Check if tmux is already available
+    if command -v tmux &>/dev/null; then
+        return 0
+    fi
+
+    # Common tmux locations to check
+    local tmux_paths=(
+        "/c/msys64/usr/bin"
+        "/usr/bin"
+        "/usr/local/bin"
+    )
+
+    for path in "${tmux_paths[@]}"; do
+        if [ -x "$path/tmux" ] || [ -x "$path/tmux.exe" ]; then
+            export PATH="$path:$PATH"
+            return 0
+        fi
+    done
+}
+
+setup_tmux_path
+
 # Find lock file by traversing up parent directories
 # Only searches within $HOME, stops at $HOME
 find_lock_file() {
@@ -79,19 +103,29 @@ EOF
 
 # Helper: Get current pane ID
 get_current_pane_id() {
-    tmux display-message -p '#{pane_id}'
+    # Try TMUX_PANE environment variable first (more reliable, especially on MSYS2)
+    if [ -n "${TMUX_PANE:-}" ]; then
+        echo "$TMUX_PANE"
+        return 0
+    fi
+
+    # Fallback to tmux display-message (for older tmux versions)
+    # Use sh -c wrapper for MSYS2 compatibility with format strings
+    sh -c "tmux display-message -p '#{pane_id}'"
 }
 
 # Helper: Check if a pane exists
 pane_exists() {
     local pane_id="$1"
-    tmux list-panes -a -F "#{pane_id}" | grep -qFx "${pane_id}"
+    # Use sh -c wrapper for MSYS2 compatibility with format strings
+    sh -c "tmux list-panes -a -F '#{pane_id}'" 2>/dev/null | grep -qFx "${pane_id}"
 }
 
 # Helper: Get the command running in a pane
 get_pane_command() {
     local pane_id="$1"
-    tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null || echo ""
+    # Use sh -c wrapper for MSYS2 compatibility with format strings
+    sh -c "tmux display-message -p -t '$pane_id' '#{pane_current_command}'" 2>/dev/null || echo ""
 }
 
 # Helper: Read lock file and return entries (format: pane_id:agent_name)
@@ -131,7 +165,6 @@ get_pane_id_by_agent_name() {
 # Helper: Check if a command is a supported agent command
 is_agent_command() {
     local command="$1"
-    [ "$command" = "claude" ] || [ "$command" = "opencode" ]
 }
 
 # Helper: Clean stale entries (panes that no longer exist)

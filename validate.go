@@ -84,7 +84,7 @@ func cmdValidate(explicit string) error {
 
 // paneExists returns true if the given window.pane index is currently active.
 func paneExists(paneIndex string) bool {
-	out, err := exec.Command("tmux", "list-panes", "-a", "-F", "#{window_index}.#{pane_index}").Output()
+	out, err := exec.Command("tmux", "list-panes", "-s", "-F", "#{window_index}.#{pane_index}").Output()
 	if err != nil {
 		return false
 	}

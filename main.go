@@ -27,35 +27,51 @@ var (
 )
 
 func main() {
-	if len(os.Args) < 2 {
+	args := os.Args[1:]
+
+	// Parse global flags before the subcommand
+	workspaceConfig := ""
+	for len(args) > 0 && args[0] == "--workspace-config" {
+		if len(args) < 2 {
+			fmt.Fprintf(os.Stderr, "error: --workspace-config requires a file path\n")
+			os.Exit(1)
+		}
+		workspaceConfig = args[1]
+		args = args[2:]
+	}
+
+	if len(args) == 0 {
 		printHelp()
 		os.Exit(0)
 	}
 
-	switch os.Args[1] {
+	cmd := args[0]
+	cmdArgs := args[1:]
+
+	var err error
+	switch cmd {
 	case "help", "--help", "-h":
 		printHelp()
 	case "info":
 		printInfo()
 	case "new-workspace":
-		if err := cmdNewWorkspace(); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-			os.Exit(1)
-		}
+		err = cmdNewWorkspace(workspaceConfig)
 	case "register":
-		if err := cmdRegister(os.Args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-			os.Exit(1)
-		}
+		err = cmdRegister(workspaceConfig, cmdArgs)
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", cmd)
 		printHelp()
+		os.Exit(1)
+	}
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
 	}
 }
 
 func printHelp() {
-	fmt.Print(`Usage: agnt <command>
+	fmt.Print(`Usage: agnt [--workspace-config <file>] <command>
 
 Commands:
   new-workspace    Create a new .agnt.yaml workspace in the current directory

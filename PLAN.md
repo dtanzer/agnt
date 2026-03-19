@@ -10,6 +10,8 @@
 
 ## Current
 
+[x] `agnt --workspace-config <file> <command>` — global flag that overrides the workspace config file lookup for any command. Errors if the specified file does not exist. - See specs/04-workspace-config-flag.md
+
 ## Next
 
 [ ] `agnt validate` — finds the workspace, reports where it is (or that none was found), checks the file is syntactically valid, and verifies that the registered tmux panes exist and look correct.

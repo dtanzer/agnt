@@ -36,6 +36,21 @@ type Config struct {
 	Agents map[string]Agent `yaml:"agents"`
 }
 
+// resolveWorkspacePath returns the config file path to use.
+// If explicit is non-empty, it is used directly (and must exist, unless
+// allowCreate is true). Otherwise the directory walk is performed.
+func resolveWorkspacePath(explicit string, allowCreate bool) (string, error) {
+	if explicit != "" {
+		if _, err := os.Stat(explicit); err != nil {
+			if !allowCreate {
+				return "", fmt.Errorf("workspace config file not found: %s", explicit)
+			}
+		}
+		return explicit, nil
+	}
+	return findWorkspace()
+}
+
 // findWorkspace searches for .agnt.yaml walking up from cwd toward $HOME.
 // Returns the path if found, empty string if not.
 func findWorkspace() (string, error) {
@@ -92,9 +107,17 @@ func saveConfig(path string, cfg Config) error {
 	return nil
 }
 
-func cmdNewWorkspace() error {
-	if _, err := os.Stat(configFileName); err == nil {
-		return fmt.Errorf("%s already exists in the current directory", configFileName)
+// cmdNewWorkspace creates a new workspace config file.
+// If explicit is non-empty, creates at that path; otherwise creates
+// .agnt.yaml in the current directory.
+func cmdNewWorkspace(explicit string) error {
+	path := explicit
+	if path == "" {
+		path = filepath.Join(mustGetwd(), configFileName)
+	}
+
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("%s already exists", path)
 	}
 
 	cfg := Config{Agents: map[string]Agent{}}
@@ -103,11 +126,11 @@ func cmdNewWorkspace() error {
 		return fmt.Errorf("failed to create config: %w", err)
 	}
 
-	if err := os.WriteFile(configFileName, data, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", configFileName, err)
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", path, err)
 	}
 
-	fmt.Printf("Created workspace at %s/%s\n", mustGetwd(), configFileName)
+	fmt.Printf("Created workspace at %s\n", path)
 	return nil
 }
 
@@ -122,7 +145,9 @@ func currentTmuxPane() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func cmdRegister(args []string) error {
+// cmdRegister registers the current tmux pane as a named agent.
+// If explicit is non-empty, that config file is used directly.
+func cmdRegister(explicit string, args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("usage: agnt register <name> <type> [--variant <variant>]")
 	}
@@ -148,19 +173,16 @@ func cmdRegister(args []string) error {
 		return err
 	}
 
-	configPath, err := findWorkspace()
-	if err != nil {
-		return err
+	// explicit path must exist; auto-lookup may create a new file
+	if explicit != "" {
+		if _, err := os.Stat(explicit); err != nil {
+			return fmt.Errorf("workspace config file not found: %s", explicit)
+		}
 	}
 
-	if configPath == "" {
-		// No workspace found — create one in the current directory
-		configPath = filepath.Join(mustGetwd(), configFileName)
-		cfg := Config{Agents: map[string]Agent{}}
-		if err := saveConfig(configPath, cfg); err != nil {
-			return fmt.Errorf("failed to create workspace: %w", err)
-		}
-		fmt.Printf("Created workspace at %s\n", configPath)
+	configPath, err := findOrCreateWorkspace(explicit)
+	if err != nil {
+		return err
 	}
 
 	cfg, err := loadConfig(configPath)
@@ -184,6 +206,30 @@ func cmdRegister(args []string) error {
 	}
 	fmt.Printf(") in %s\n", configPath)
 	return nil
+}
+
+// findOrCreateWorkspace resolves the config path, creating a new file in cwd
+// if no explicit path is given and no file is found via the directory walk.
+func findOrCreateWorkspace(explicit string) (string, error) {
+	if explicit != "" {
+		return explicit, nil
+	}
+
+	configPath, err := findWorkspace()
+	if err != nil {
+		return "", err
+	}
+
+	if configPath == "" {
+		configPath = filepath.Join(mustGetwd(), configFileName)
+		cfg := Config{Agents: map[string]Agent{}}
+		if err := saveConfig(configPath, cfg); err != nil {
+			return "", fmt.Errorf("failed to create workspace: %w", err)
+		}
+		fmt.Printf("Created workspace at %s\n", configPath)
+	}
+
+	return configPath, nil
 }
 
 func mustGetwd() string {

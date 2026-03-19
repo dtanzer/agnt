@@ -6,6 +6,14 @@ Steps live in PLAN.md (Done / Current / Next / Later). Specs live in `specs/`.
 
 Pattern: refine step(s) in PLAN.md → Claude writes spec from PLAN.md + user input → implement → repeat for next step.
 
+## Testing
+
+For commands that require a tmux session, use the fake tmux binary at `testtools/bin/tmux` (returns pane ID `%42`):
+
+```
+TMUX=fake PATH=/workspace/testtools/bin:$PATH ./agnt <command>
+```
+
 ## Collaboration style
 
 - Ask clarifying questions when anything is unclear before proceeding.

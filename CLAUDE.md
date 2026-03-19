@@ -14,6 +14,8 @@ For commands that require a tmux session, use the fake tmux binary at `testtools
 TMUX=fake PATH=/workspace/testtools/bin:$PATH ./agnt <command>
 ```
 
+Test fixtures in `test-workspaces/` are committed to the repo. After any test that modifies them, restore them before committing.
+
 ## Collaboration style
 
 - Ask clarifying questions when anything is unclear before proceeding.

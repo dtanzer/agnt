@@ -19,3 +19,36 @@
 - **A thin CLI.** `agnt spawn`, `agnt stop`, `agnt send`, `agnt list` — the CLI finds the running server automatically and just issues REST calls.
 
 **In one sentence:** agnt is a named-agent session manager — it sits on the host, owns the tmux panes, and lets you spawn, stop, and message AI agents by name regardless of where the caller lives.
+
+---
+
+## Pane layouts and agent groups
+
+Agents are assigned to tmux panes by window:pane index (e.g. `0:0`, `0:1`). These indices are stable within a tmux session layout and visible in the tmux UI, making it easy to reason about which agent lives where.
+
+A common pattern is to create a fixed split layout — say 2×2 or 2×3 — and assign one agent per pane. The config file then serves as a permanent map of your workspace:
+
+```
+┌─────────────┬─────────────┐
+│  Alice      │  Bob        │
+│  0:0        │  0:1        │
+├─────────────┼─────────────┤
+│  Charlie    │  Dave       │
+│  0:2        │  0:3        │
+└─────────────┴─────────────┘
+```
+
+**Groups** are a user-level concept: you can assign multiple agents to the same pane, which lets you define logical groups within your config. The tool doesn't enforce or interpret groups — it manages individual agents and lets you organise them however you like.
+
+If your tmux layout changes (new session, panes reordered), `agnt remap` lets you re-assign agents to their new pane indices without editing the config by hand.
+
+---
+
+## Future ideas
+
+These are not planned for now but worth keeping in mind:
+
+- **Group commands** — `agnt start-group <name>`, `agnt stop-group <name>` to act on all agents sharing a pane or tagged with a group label in the config.
+- **Watch mode** — a live dashboard showing agent status across all panes, refreshing automatically.
+- **Remote agents** — agents running on other machines joining the same agnt server over the network.
+- **Config generation** — `agnt init` that interactively assigns the current tmux panes to agent names and writes the config in one step.

@@ -62,6 +62,8 @@ func main() {
 		err = cmdValidate(workspaceConfig)
 	case "start":
 		err = cmdStart(workspaceConfig, cmdArgs)
+	case "server":
+		err = cmdServer(workspaceConfig, cmdArgs)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", cmd)
 		printHelp()
@@ -82,6 +84,7 @@ Commands:
   register         Register the current tmux pane as a named agent
   validate         Check the workspace config and verify panes exist
   start            Start a registered agent in its tmux pane
+  server           Manage the agnt server (start, status)
   info             Print version and build information
   help             Show this help message
 

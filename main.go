@@ -60,6 +60,8 @@ func main() {
 		err = cmdRegister(workspaceConfig, cmdArgs)
 	case "validate":
 		err = cmdValidate(workspaceConfig)
+	case "start":
+		err = cmdStart(workspaceConfig, cmdArgs)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", cmd)
 		printHelp()
@@ -79,6 +81,7 @@ Commands:
   new-workspace    Create a new .agnt.yaml workspace in the current directory
   register         Register the current tmux pane as a named agent
   validate         Check the workspace config and verify panes exist
+  start            Start a registered agent in its tmux pane
   info             Print version and build information
   help             Show this help message
 

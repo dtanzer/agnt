@@ -18,9 +18,9 @@
 
 [x] Agent type definitions in workspace config — users define named types in `.agnt.yaml` under a `types:` key. Each type has a `run:` field with the command to execute (e.g. `claude --some-flag` or `docker run my-image`). `agnt validate` gains a check that each registered agent's type is defined in the config. - See specs/08-type-definitions.md
 
-[ ] Placeholder system for type definitions — the `run:` command can include placeholders (e.g. `{{name}}`, `{{variant}}`, `{{server_url}}`) that are substituted at start time. For bare-metal types, placeholders expand to CLI arguments appended to the command; for container types, they expand to `--env` flags passed to `docker run`. Exact placeholder syntax and available variables defined here.
+[x] Placeholder system for type definitions — the `run:` command can include placeholders (e.g. `{{name}}`, `{{variant}}`, `{{server_url}}`) that are substituted at start time. For bare-metal types, placeholders expand to CLI arguments appended to the command; for container types, they expand to `--env` flags passed to `docker run`. Exact placeholder syntax and available variables defined here.
 
-[ ] `agnt start <name>` — looks up the agent by name, finds its type definition, substitutes placeholders, and sends the resulting command as keystrokes to the registered tmux pane.
+[x] `agnt start <name>` — looks up the agent by name, finds its type definition, substitutes placeholders, and sends the resulting command as keystrokes to the registered tmux pane.
 
 [ ] `agnt server` — starts a background HTTP daemon. `agnt server status` checks if it's running and prints basic info (pid, uptime, listening address). No agent state yet — just liveness.
 

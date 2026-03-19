@@ -16,11 +16,12 @@
 
 ## Next
 
+[ ] Test pane index stability with tmux-resurrect — run test cases from specs/07-pane-index-stability-tests.md on a real machine and update the plan based on results.
+
 [ ] `agnt remap` — interactively or automatically reassign agents to their current pane indices, for when the tmux layout has changed since the config was written. `validate` should suggest running this when it detects index mismatches.
 
 ## Later
 
-- Test pane index stability with tmux-resurrect — run test cases from specs/07-pane-index-stability-tests.md on a real machine and update the plan based on results.
 - `agnt register` currently errors if the agent name already exists — may need a `--force` flag (or similar) to update an existing entry.
 - Multiple agents sharing the same pane index is intentional (groups are alternative configurations for the same layout) — `validate` should not flag this as an error.
 - Implement the rest of the functionality, to be refined.

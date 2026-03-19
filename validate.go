@@ -42,7 +42,30 @@ func cmdValidate(explicit string) error {
 	}
 	fmt.Printf("Syntax:     OK\n")
 
-	// Step 3: per-agent pane checks
+	// Step 3: types block (informational — shows all types referenced by agents)
+	referencedTypes := map[string]struct{}{}
+	for _, agent := range cfg.Agents {
+		if agent.Type != "" {
+			referencedTypes[agent.Type] = struct{}{}
+		}
+	}
+	if len(referencedTypes) > 0 {
+		typeNames := make([]string, 0, len(referencedTypes))
+		for t := range referencedTypes {
+			typeNames = append(typeNames, t)
+		}
+		sort.Strings(typeNames)
+		fmt.Printf("Types (%d):\n", len(typeNames))
+		for _, t := range typeNames {
+			if _, defined := cfg.Types[t]; defined {
+				fmt.Printf("  %-12s OK\n", t)
+			} else {
+				fmt.Printf("  %-12s MISSING\n", t)
+			}
+		}
+	}
+
+	// Step 4: per-agent checks (type resolution, then pane)
 	names := make([]string, 0, len(cfg.Agents))
 	for name := range cfg.Agents {
 		names = append(names, name)
@@ -54,6 +77,11 @@ func cmdValidate(explicit string) error {
 	failed := 0
 	for _, name := range names {
 		agent := cfg.Agents[name]
+		if _, defined := cfg.Types[agent.Type]; !defined {
+			fmt.Printf("  %-12s pane %-4s MISSING TYPE (%s)\n", name, agent.Pane, agent.Type)
+			failed++
+			continue
+		}
 		exists := paneExists(agent.Pane)
 		if exists {
 			cmd := paneCommand(agent.Pane)

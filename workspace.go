@@ -26,6 +26,10 @@ import (
 
 const configFileName = ".agnt.yaml"
 
+type AgentType struct {
+	Run string `yaml:"run"`
+}
+
 type Agent struct {
 	Type    string `yaml:"type"`
 	Variant string `yaml:"variant,omitempty"`
@@ -33,7 +37,8 @@ type Agent struct {
 }
 
 type Config struct {
-	Agents map[string]Agent `yaml:"agents"`
+	Types  map[string]AgentType `yaml:"types,omitempty"`
+	Agents map[string]Agent     `yaml:"agents"`
 }
 
 // resolveWorkspacePath returns the config file path to use.
@@ -89,6 +94,9 @@ func loadConfig(path string) (Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return Config{}, fmt.Errorf("failed to parse %s: %w", path, err)
+	}
+	if cfg.Types == nil {
+		cfg.Types = map[string]AgentType{}
 	}
 	if cfg.Agents == nil {
 		cfg.Agents = map[string]Agent{}

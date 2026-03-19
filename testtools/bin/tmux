@@ -1,19 +1,20 @@
 #!/bin/bash
-# Fake tmux for testing. Simulates a session with one pane: %42 running "claude".
+# Fake tmux for testing. Simulates a session with one pane: index 0.0 running "claude".
 
 case "$1" in
   display-message)
     if [[ "$*" == *"pane_current_command"* ]]; then
       echo "claude"
+    elif [[ "$*" == *"window_index"* ]]; then
+      echo "0.0"
     else
-      # Default: return current pane ID
-      echo "%42"
+      echo "0.0"
     fi
     ;;
   list-panes)
-    echo "%42"
+    echo "0.0"
     ;;
   *)
-    echo "%42"
+    echo "0.0"
     ;;
 esac

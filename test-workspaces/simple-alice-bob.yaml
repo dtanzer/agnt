@@ -2,8 +2,8 @@ agents:
     Alice:
         type: elaborate
         variant: go
-        pane: '%2'
+        pane: '0.1'
     Bob:
         type: simple
         variant: java
-        pane: '%1'
+        pane: '0.0'

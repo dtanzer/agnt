@@ -82,23 +82,23 @@ func cmdValidate(explicit string) error {
 	return nil
 }
 
-// paneExists returns true if the given tmux pane ID is currently active.
-func paneExists(paneID string) bool {
-	out, err := exec.Command("tmux", "list-panes", "-a", "-F", "#{pane_id}").Output()
+// paneExists returns true if the given window.pane index is currently active.
+func paneExists(paneIndex string) bool {
+	out, err := exec.Command("tmux", "list-panes", "-a", "-F", "#{window_index}.#{pane_index}").Output()
 	if err != nil {
 		return false
 	}
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		if strings.TrimSpace(line) == paneID {
+		if strings.TrimSpace(line) == paneIndex {
 			return true
 		}
 	}
 	return false
 }
 
-// paneCommand returns the command currently running in the given pane, or empty string on failure.
-func paneCommand(paneID string) string {
-	out, err := exec.Command("tmux", "display-message", "-p", "-t", paneID, "#{pane_current_command}").Output()
+// paneCommand returns the command currently running in the given window.pane index, or empty string on failure.
+func paneCommand(paneIndex string) string {
+	out, err := exec.Command("tmux", "display-message", "-p", "-t", paneIndex, "#{pane_current_command}").Output()
 	if err != nil {
 		return ""
 	}

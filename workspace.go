@@ -138,9 +138,9 @@ func currentTmuxPane() (string, error) {
 	if os.Getenv("TMUX") == "" {
 		return "", fmt.Errorf("not inside a tmux session")
 	}
-	out, err := exec.Command("tmux", "display-message", "-p", "#{pane_id}").Output()
+	out, err := exec.Command("tmux", "display-message", "-p", "#{window_index}.#{pane_index}").Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to get tmux pane ID: %w", err)
+		return "", fmt.Errorf("failed to get tmux pane index: %w", err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }

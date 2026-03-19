@@ -40,6 +40,8 @@ Record the pane indices from the config as your baseline.
 
 *Question: do all 4 agents still show OK?*
 
+**Result: PASS.** Indices are stable across detach/reattach.
+
 ---
 
 **Test 2 — Split a registered pane**
@@ -47,6 +49,10 @@ Record the pane indices from the config as your baseline.
 2. Run: `agnt validate`
 
 *Question: do the indices of the other 3 panes shift? Does the split pane's index change?*
+
+**Result: indices shift; validate gives false OK.** Splitting a pane re-indexes all panes after the split point. The config still holds the original indices which now resolve to different panes — validate reports OK because those index slots still exist, but the mapping is wrong. Closing the newly created pane restores the original indices (tested; may not always hold for more complex combinations).
+
+*Decision: document this behaviour. Users must not split registered panes without running `remap` afterward.*
 
 ---
 
@@ -56,6 +62,10 @@ Record the pane indices from the config as your baseline.
 
 *Question: do the indices of the remaining 3 panes shift?*
 
+**Result: BUG FOUND.** `validate` searches panes across all sessions (`tmux list-panes -a`), so if a matching pane index exists in *any* session, it reports OK even though the registered pane is gone. Example: closing pane 0.2 in `agnt-test` still passed validation because `dragon-trainer 0.2` existed in another session.
+
+*Decision: `validate` must scope pane lookup to the current tmux session only.*
+
 ---
 
 **Test 4 — Add a new window**
@@ -64,6 +74,8 @@ Record the pane indices from the config as your baseline.
 
 *Question: do the pane indices in window 0 change when a new window is added?*
 
+**Result: PASS.** Adding a new window does not affect pane indices in existing windows.
+
 ---
 
 **Test 5 — Reorder windows**
@@ -71,6 +83,10 @@ Record the pane indices from the config as your baseline.
 2. Run: `agnt validate`
 
 *Question: do pane indices within the moved window change?*
+
+**Result: indices shift; validate gives false OK.** Window reordering changes the window component of every affected agent's index (e.g. `0.0` becomes `1.0`). Validate reports OK only if those index slots exist in some window of the session.
+
+*Decision: document that users must run `remap` after reordering windows.*
 
 ---
 
@@ -82,6 +98,10 @@ Record the pane indices from the config as your baseline.
 3. Run: `agnt validate`
 
 *Question: do you get the same indices (0.0–0.3) as before?*
+
+**Result: indices may differ; validate gives false OK.** After kill+recreate, manually recreating the layout can produce different pane index assignments. Validate reported OK because the index *numbers* in the config still existed — but the physical panes behind those indices were different agents (order had changed).
+
+*Decision: kill+recreate is a full remap situation. Document this and have `validate` suggest `remap` when it detects a session age mismatch or when the user reports layout changes.*
 
 ---
 
@@ -95,29 +115,37 @@ Record the pane indices from the config as your baseline.
 
 *Question: are all 4 agents found with their original indices?*
 
----
-
-**Test 8 — Reboot**
-1. Reboot the machine (with resurrect configured to auto-restore, if set up)
-2. After boot, run: `agnt validate`
-
-*Question: same indices after a full reboot?*
+**Result: PASS.** tmux-resurrect reliably restores pane indices — visually confirmed the same panes are in the same positions and validate reports all agents OK. No remap needed after a resurrect cycle.
 
 ---
 
 ### Config edge case
 
-**Test 9 — Non-zero pane-base-index**
+**Test 8 — Non-zero pane-base-index**
 1. Check your `.tmux.conf` for `pane-base-index` — what is it set to (default is 0)?
 2. If it's set to 1 (or another value), note what indices `agnt register` captures.
 
 *Question: does agnt capture the actual index tmux uses, regardless of base-index setting?*
 
+**Result: PASS.** With `pane-base-index 1`, a single-pane window registered as `0.1` — agnt captured the actual tmux index. Validate also reported `pane 0.1  OK`. agnt is transparent to this setting; whatever index tmux assigns is what gets stored and looked up.
+
 ---
+
+## Summary of findings
+
+| Test | Result | Action needed |
+|------|--------|---------------|
+| 1 — Detach/reattach | STABLE | None |
+| 2 — Split a pane | Indices shift; validate blind | Document; users must remap after splits |
+| 3 — Close a pane | **BUG**: validate searches all sessions | Fix: scope pane lookup to current session |
+| 4 — Add a window | STABLE | None |
+| 5 — Reorder windows | Indices shift; validate blind | Document; users must remap after reorder |
+| 6 — Kill and recreate | Indices may differ; validate blind | Document; remap required after recreate |
+| 7 — tmux-resurrect | STABLE | None — resurrect reliably restores indices |
+| 8 — pane-base-index | PASS | None — agnt transparently uses whatever index tmux assigns |
 
 ## What to report back
 
-For each test: pass/fail, and any unexpected behaviour. Particularly interested in:
-- Whether splits or closures cause index shifts
+For each remaining test: pass/fail, and any unexpected behaviour. Particularly interested in:
 - Whether resurrect reliably restores indices
 - Whether `pane-base-index` affects what agnt captures

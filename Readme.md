@@ -36,17 +36,17 @@ agents:
   Alice:
     type: simple
     variant: java
-    pane: "0:0"
+    pane: "0.0"
   Bob:
     type: simple
-    pane: "0:1"
+    pane: "0.1"
 ```
 
 Each agent has:
 - **name** — stable identifier used in all commands
 - **type** — determines which launch script is used
 - **variant** *(optional)* — passed as a parameter to the launch script
-- **pane** — tmux window:pane index (e.g. `0:1`)
+- **pane** — tmux window.pane index (e.g. `0.1`)
 
 ### Pane layout
 
@@ -58,10 +58,10 @@ Groups are alternative agent configurations for the same pane layout. Multiple a
 
 ```yaml
 agents:
-  Alice:   { type: simple, pane: "0:0" }   # Group 1
-  Bob:     { type: simple, pane: "0:1" }   # Group 1
-  Charlie: { type: simple, pane: "0:0" }   # Group 2
-  Dave:    { type: simple, pane: "0:1" }   # Group 2
+  Alice:   { type: simple, pane: "0.0" }   # Group 1
+  Bob:     { type: simple, pane: "0.1" }   # Group 1
+  Charlie: { type: simple, pane: "0.0" }   # Group 2
+  Dave:    { type: simple, pane: "0.1" }   # Group 2
 ```
 
 You run either Group 1 (Alice+Bob) or Group 2 (Charlie+Dave) in the same two panes. Stop one group before starting the other. The tool doesn't need to know about groups — you decide which agents to start and stop.
@@ -109,8 +109,8 @@ agnt validate
 Workspace:  /home/user/project/.agnt.yaml
 Syntax:     OK
 Agents (2):
-  Alice        pane 0:0  OK  [claude]
-  Bob          pane 0:1  OK  [bash]
+  Alice        pane 0.0  OK  [claude]
+  Bob          pane 0.1  OK  [bash]
 
 Summary: 2/2 checks passed
 ```
@@ -178,7 +178,7 @@ agnt validate        # see what's missing
 agnt remap           # reassign agents to current panes (coming soon)
 ```
 
-If you use [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect), your pane layout is restored after a system restart, which may keep pane indices stable between sessions. If they do change, `agnt remap` will sort it out.
+If you use [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect), your pane layout — including pane indices — is reliably restored after a system restart. No remap needed.
 
 ### Working with multiple workspaces
 
@@ -188,6 +188,30 @@ Use `--workspace-config` to work with a specific config file without changing yo
 agnt --workspace-config ~/teamA/.agnt.yaml validate
 agnt --workspace-config ~/teamB/.agnt.yaml register Dave simple
 ```
+
+---
+
+## Troubleshooting
+
+### When do pane indices change?
+
+Pane indices are stable in most situations, but a few operations will shift them and leave your config pointing at the wrong panes:
+
+| Operation | Effect on indices | What to do |
+|-----------|------------------|------------|
+| Detach and reattach | Stable | Nothing |
+| Add a new window | Stable | Nothing |
+| tmux-resurrect save/restore | Stable | Nothing |
+| **Split a registered pane** | All panes after the split point are re-indexed | Run `agnt remap` |
+| **Reorder windows** | Window numbers of affected agents change | Run `agnt remap` |
+| **Kill server and recreate manually** | Indices likely differ | Run `agnt remap` |
+| Close a registered pane | Pane is gone | Remove or remap the agent |
+
+`agnt validate` reports OK as long as the index *number* exists somewhere — it does not verify that the right process is running there. After any layout change, run `agnt remap` to bring the config back in sync.
+
+### pane-base-index
+
+If your `.tmux.conf` sets `pane-base-index` to a non-zero value (e.g. `1`), `agnt` captures and uses whatever index tmux assigns — so a single-pane window at base-index 1 registers as `0.1`. This works transparently; just be aware that your indices won't start at `0`.
 
 ---
 

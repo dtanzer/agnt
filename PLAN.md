@@ -16,7 +16,9 @@
 
 ## Next
 
-[ ] Test pane index stability with tmux-resurrect — run test cases from specs/07-pane-index-stability-tests.md on a real machine and update the plan based on results.
+[x] Test pane index stability with tmux-resurrect — run test cases from specs/07-pane-index-stability-tests.md on a real machine and update the plan based on results. - See specs/07-pane-index-stability-tests.md
+
+[ ] Fix `validate` bug: pane lookup searches all tmux sessions (`list-panes -a`), so a pane index that exists in *any* session is reported OK — even if the registered agent's pane is gone. Lookup must be scoped to the current tmux session only.
 
 [ ] `agnt remap` — interactively or automatically reassign agents to their current pane indices, for when the tmux layout has changed since the config was written. `validate` should suggest running this when it detects index mismatches.
 

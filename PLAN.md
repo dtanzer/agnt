@@ -30,6 +30,9 @@
 
 ## Later
 
+- `agnt start` should require a server to be running — error if none is found.
+- Decide whether modifying agent/type definitions in `.agnt.yaml` should be blocked while a server is running.
+
 - `agnt register` currently errors if the agent name already exists — may need a `--force` flag (or similar) to update an existing entry.
 - Multiple agents sharing the same pane index is intentional (groups are alternative configurations for the same layout) — `validate` should not flag this as an error.
 - `agnt remap` — interactively or automatically reassign agents to their current pane indices, for when the tmux layout has changed since the config was written. `validate` should suggest running this when it detects index mismatches.

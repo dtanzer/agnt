@@ -1,7 +1,5 @@
 # Plan for Implementing agnt
 
-## Done
-
 [x] Deliver a working `agnt` binary that a user can install and invoke. It doesn't manage agents yet, but it feels like a real tool: it has a consistent command structure, useful help text, and an `info` command that tells you what version you're running. - See specs/01-cli-skeleton.md
 
 [x] `agnt new-workspace` — creates a fresh `.agnt.yaml` in the current directory, even if one already exists in a parent directory. - See specs/02-new-workspace.md
@@ -14,13 +12,11 @@
 
 [x] Migrate pane identification from tmux pane ID (`%42`) to window.pane index (`0.1`). - See specs/06-pane-index.md
 
-## Next
-
 [x] Test pane index stability with tmux-resurrect — run test cases from specs/07-pane-index-stability-tests.md on a real machine and update the plan based on results. - See specs/07-pane-index-stability-tests.md
 
 [x] Fix `validate` bug: pane lookup searches all tmux sessions (`list-panes -a`), so a pane index that exists in *any* session is reported OK — even if the registered agent's pane is gone. Lookup must be scoped to the current tmux session only.
 
-[ ] Agent type definitions in workspace config — users define named types in `.agnt.yaml` under a `types:` key. Each type has a `run:` field with the command to execute (e.g. `claude --some-flag` or `docker run my-image`). `agnt validate` gains a check that each registered agent's type is defined in the config.
+[x] Agent type definitions in workspace config — users define named types in `.agnt.yaml` under a `types:` key. Each type has a `run:` field with the command to execute (e.g. `claude --some-flag` or `docker run my-image`). `agnt validate` gains a check that each registered agent's type is defined in the config. - See specs/08-type-definitions.md
 
 [ ] Placeholder system for type definitions — the `run:` command can include placeholders (e.g. `{{name}}`, `{{variant}}`, `{{server_url}}`) that are substituted at start time. For bare-metal types, placeholders expand to CLI arguments appended to the command; for container types, they expand to `--env` flags passed to `docker run`. Exact placeholder syntax and available variables defined here.
 

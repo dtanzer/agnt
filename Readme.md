@@ -178,6 +178,8 @@ agnt validate        # see what's missing
 agnt remap           # reassign agents to current panes (coming soon)
 ```
 
+If you use [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect), your pane layout is restored after a system restart, which may keep pane indices stable between sessions. If they do change, `agnt remap` will sort it out.
+
 ### Working with multiple workspaces
 
 Use `--workspace-config` to work with a specific config file without changing your current directory:

@@ -37,6 +37,11 @@ func main() {
 		printHelp()
 	case "info":
 		printInfo()
+	case "new-workspace":
+		if err := cmdNewWorkspace(); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", os.Args[1])
 		printHelp()
@@ -48,8 +53,9 @@ func printHelp() {
 	fmt.Print(`Usage: agnt <command>
 
 Commands:
-  info    Print version and build information
-  help    Show this help message
+  new-workspace    Create a new .agnt.yaml workspace in the current directory
+  info             Print version and build information
+  help             Show this help message
 
 `)
 }

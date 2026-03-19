@@ -164,12 +164,19 @@ func cmdRegister(explicit string, args []string) error {
 	agentType := args[1]
 	variant := ""
 
+	if strings.ContainsAny(name, " \t") {
+		return fmt.Errorf("agent name must not contain spaces")
+	}
+
 	for i := 2; i < len(args); i++ {
 		if args[i] == "--variant" {
 			if i+1 >= len(args) {
 				return fmt.Errorf("--variant requires a value")
 			}
 			variant = args[i+1]
+			if strings.ContainsAny(variant, " \t") {
+				return fmt.Errorf("variant must not contain spaces")
+			}
 			i++
 		} else {
 			return fmt.Errorf("unexpected argument: %q", args[i])
@@ -238,6 +245,24 @@ func findOrCreateWorkspace(explicit string) (string, error) {
 	}
 
 	return configPath, nil
+}
+
+// resolvePlaceholders substitutes {{name}} and {{variant}} in the run string.
+// Returns an error if any unknown placeholder is found.
+func resolvePlaceholders(run string, name string, variant string) (string, error) {
+	result := strings.ReplaceAll(run, "{{name}}", name)
+	result = strings.ReplaceAll(result, "{{variant}}", variant)
+
+	// Check for any remaining placeholders
+	start := strings.Index(result, "{{")
+	if start != -1 {
+		end := strings.Index(result[start:], "}}")
+		if end != -1 {
+			unknown := result[start : start+end+2]
+			return "", fmt.Errorf("unknown placeholder %s in run command", unknown)
+		}
+	}
+	return result, nil
 }
 
 func mustGetwd() string {

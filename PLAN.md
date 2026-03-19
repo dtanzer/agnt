@@ -20,7 +20,7 @@
 
 ## Later
 
-- Test pane index stability with tmux-resurrect: propose test cases (restore session, reboot, detach/reattach) and run them on a real machine to verify whether indices are preserved and when `remap` is needed.
+- Test pane index stability with tmux-resurrect — run test cases from specs/07-pane-index-stability-tests.md on a real machine and update the plan based on results.
 - `agnt register` currently errors if the agent name already exists — may need a `--force` flag (or similar) to update an existing entry.
 - Multiple agents sharing the same pane index is intentional (groups are alternative configurations for the same layout) — `validate` should not flag this as an error.
 - Implement the rest of the functionality, to be refined.

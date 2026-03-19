@@ -1,0 +1,4 @@
+agents:
+    Bob:
+        type: simple
+        pane: '%42'

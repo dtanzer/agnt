@@ -1,2 +1,19 @@
 #!/bin/bash
-echo "%42"
+# Fake tmux for testing. Simulates a session with one pane: %42 running "claude".
+
+case "$1" in
+  display-message)
+    if [[ "$*" == *"pane_current_command"* ]]; then
+      echo "claude"
+    else
+      # Default: return current pane ID
+      echo "%42"
+    fi
+    ;;
+  list-panes)
+    echo "%42"
+    ;;
+  *)
+    echo "%42"
+    ;;
+esac

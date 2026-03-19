@@ -14,7 +14,7 @@
 
 ## Next
 
-[ ] `agnt validate` — finds the workspace, reports where it is (or that none was found), checks the file is syntactically valid, and verifies that the registered tmux panes exist and look correct.
+[x] `agnt validate` — finds the workspace, reports where it is (or that none was found), checks the file is syntactically valid, and verifies that the registered tmux panes exist and look correct. - See specs/05-validate.md
 
 ## Later
 

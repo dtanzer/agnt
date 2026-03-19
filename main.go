@@ -42,6 +42,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 			os.Exit(1)
 		}
+	case "register":
+		if err := cmdRegister(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", os.Args[1])
 		printHelp()
@@ -54,6 +59,7 @@ func printHelp() {
 
 Commands:
   new-workspace    Create a new .agnt.yaml workspace in the current directory
+  register         Register the current tmux pane as a named agent
   info             Print version and build information
   help             Show this help message
 

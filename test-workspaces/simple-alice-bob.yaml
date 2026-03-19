@@ -1,8 +1,8 @@
 types:
   simple:
-    run: "claude --dangerously-skip-permissions"
+    run: "echo {{name}}"
   elaborate:
-    run: "docker run --rm my-claude-image"
+    run: "echo {{name}} ({{variant}})"
 agents:
   Alice:
     type: elaborate

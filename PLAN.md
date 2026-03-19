@@ -28,6 +28,8 @@
 
 [ ] `agnt kill <name>` — instructs the server to terminate the named agent using the info captured at attach time (SIGTERM for bare-metal, `docker stop` for containers).
 
+[ ] `agnt start <name>` delegates to the server — instead of sending keys directly, the CLI calls the server which sends the keys. Requires a running server.
+
 ## Later
 
 - `agnt start` should require a server to be running — error if none is found.

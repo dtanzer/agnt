@@ -54,7 +54,17 @@ The recommended workflow is to create a fixed tmux split layout first, then regi
 
 ### Agent groups
 
-You can assign multiple agents to the same pane. This is how you define groups: agents sharing a pane form a logical group that you can visually identify in your tmux layout. The tool doesn't need to know about groups — it manages individual agents and lets you organise them as you see fit.
+Groups are alternative agent configurations for the same pane layout. Multiple agents can share the same pane index — but only one runs there at a time:
+
+```yaml
+agents:
+  Alice:   { type: simple, pane: "0:0" }   # Group 1
+  Bob:     { type: simple, pane: "0:1" }   # Group 1
+  Charlie: { type: simple, pane: "0:0" }   # Group 2
+  Dave:    { type: simple, pane: "0:1" }   # Group 2
+```
+
+You run either Group 1 (Alice+Bob) or Group 2 (Charlie+Dave) in the same two panes. Stop one group before starting the other. The tool doesn't need to know about groups — you decide which agents to start and stop.
 
 ---
 

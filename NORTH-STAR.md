@@ -26,19 +26,14 @@
 
 Agents are assigned to tmux panes by window:pane index (e.g. `0:0`, `0:1`). These indices are stable within a tmux session layout and visible in the tmux UI, making it easy to reason about which agent lives where.
 
-A common pattern is to create a fixed split layout — say 2×2 or 2×3 — and assign one agent per pane. The config file then serves as a permanent map of your workspace:
+**Groups** are alternative agent configurations for the same layout. Multiple agents can share the same pane index — but only one runs there at a time. This lets you define several groups in a single config file and switch between them:
 
 ```
-┌─────────────┬─────────────┐
-│  Alice      │  Bob        │
-│  0:0        │  0:1        │
-├─────────────┼─────────────┤
-│  Charlie    │  Dave       │
-│  0:2        │  0:3        │
-└─────────────┴─────────────┘
+Group 1:  Alice → 0:0   Bob → 0:1
+Group 2:  Charlie → 0:0   Dave → 0:1
 ```
 
-**Groups** are a user-level concept: you can assign multiple agents to the same pane, which lets you define logical groups within your config. The tool doesn't enforce or interpret groups — it manages individual agents and lets you organise them however you like.
+You'd run Group 1 (Alice+Bob) or Group 2 (Charlie+Dave) in the same two panes, stopping one group before starting the other. The tool doesn't need to know about groups — it manages individual agents and you decide which ones to start and stop.
 
 If your tmux layout changes (new session, panes reordered), `agnt remap` lets you re-assign agents to their new pane indices without editing the config by hand.
 

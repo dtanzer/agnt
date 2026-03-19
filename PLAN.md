@@ -12,11 +12,9 @@
 
 [x] `agnt validate` — finds the workspace, reports where it is (or that none was found), checks the file is syntactically valid, and verifies that the registered tmux panes exist and look correct. - See specs/05-validate.md
 
-## Current
+[x] Migrate pane identification from tmux pane ID (`%42`) to window.pane index (`0.1`). - See specs/06-pane-index.md
 
 ## Next
-
-[x] Migrate pane identification from tmux pane ID (`%42`) to window:pane index (`0.1`). - See specs/06-pane-index.md Indices are stable within a layout, visible in the tmux UI (`Ctrl+B q`), and more meaningful to users. Affects `register`, `validate`, and the config file format. `register` should capture the index at registration time. `validate` should check by index.
 
 [ ] `agnt remap` — interactively or automatically reassign agents to their current pane indices, for when the tmux layout has changed since the config was written. `validate` should suggest running this when it detects index mismatches.
 

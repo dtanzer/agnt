@@ -22,11 +22,9 @@
 
 [x] `agnt start <name>` — looks up the agent by name, finds its type definition, substitutes placeholders, and sends the resulting command as keystrokes to the registered tmux pane.
 
-[ ] `agnt server` — starts a background HTTP daemon. `agnt server status` checks if it's running and prints basic info (pid, uptime, listening address). No agent state yet — just liveness.
+[x] `agnt server` — starts a background HTTP daemon. `agnt server status` checks if it's running and prints basic info (pid, uptime, listening address). No agent state yet — just liveness. - See specs/11-server.md
 
-[ ] `agnt server status` should only check the health endpoint, nothing else. Then it can also be used from inside a docker/podman container. The health endpoint can return all the data that status currently shows.
-
-[ ] Add server port to the placeholder system.
+[x] `agnt server status` should only check the health endpoint, nothing else. Then it can also be used from inside a docker/podman container (with `--network host` and workspace mounted). The health endpoint returns all the data that status currently shows. - See specs/12-server-status-health.md
 
 [ ] `agnt start <name>` delegates to the server — instead of sending keys directly, the CLI calls the server which sends the keys. Requires a running server.
 
@@ -44,3 +42,4 @@
 - `agnt remap` — interactively or automatically reassign agents to their current pane indices, for when the tmux layout has changed since the config was written. `validate` should suggest running this when it detects index mismatches.
 - Global type definitions in a home-directory config (e.g. `~/.agnt.yaml`), merged with workspace config at runtime.
 - `agnt start` auto-attaches with the server at startup, if one is running.
+- `agnt server` currently requires `--network host` for container access; revisit if finer-grained networking is needed (e.g. configurable bind address, auth token).

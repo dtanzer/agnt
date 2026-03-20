@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -110,11 +111,26 @@ func cmdServerStart(workspaceConfig string, args []string) error {
 	}
 
 	addr := fmt.Sprintf("localhost:%d", port)
+	startedTime := time.Now().UTC()
+
+	type healthResponse struct {
+		PID     int    `json:"pid"`
+		Port    int    `json:"port"`
+		Started string `json:"started"`
+		Uptime  string `json:"uptime"`
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		resp := healthResponse{
+			PID:     os.Getpid(),
+			Port:    port,
+			Started: startedTime.Format(time.RFC3339),
+			Uptime:  time.Since(startedTime).Round(time.Second).String(),
+		}
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "ok")
+		json.NewEncoder(w).Encode(resp)
 	})
 
 	// Enforce localhost-only connections
@@ -169,26 +185,33 @@ func cmdServerStatus(workspaceConfig string) error {
 		return nil
 	}
 
-	if !pidRunning(s.PID) {
-		fmt.Println("Server:   not running (stale status file)")
-		return nil
-	}
-
-	// Ping /health
+	healthURL := fmt.Sprintf("http://localhost:%d/health", s.Port)
 	client := &http.Client{Timeout: 3 * time.Second}
-	resp, err := client.Get(fmt.Sprintf("http://localhost:%d/health", s.Port))
+	resp, err := client.Get(healthURL)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		fmt.Println("Server:   not healthy (process exists but not responding)")
+		fmt.Println("Server:   not running")
+		fmt.Printf("Checked:  %s\n", healthURL)
 		return nil
 	}
+	defer resp.Body.Close()
 
-	started, _ := time.Parse(time.RFC3339, s.Started)
-	uptime := time.Since(started).Round(time.Second)
+	type healthResponse struct {
+		PID     int    `json:"pid"`
+		Port    int    `json:"port"`
+		Started string `json:"started"`
+		Uptime  string `json:"uptime"`
+	}
+	var health healthResponse
+	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
+		fmt.Println("Server:   not running")
+		fmt.Printf("Checked:  %s\n", healthURL)
+		return nil
+	}
 
 	fmt.Printf("Server:   running\n")
-	fmt.Printf("PID:      %d\n", s.PID)
-	fmt.Printf("Address:  localhost:%d\n", s.Port)
-	fmt.Printf("Uptime:   %s\n", uptime)
+	fmt.Printf("PID:      %d\n", health.PID)
+	fmt.Printf("Address:  localhost:%d\n", health.Port)
+	fmt.Printf("Uptime:   %s\n", health.Uptime)
 	return nil
 }
 

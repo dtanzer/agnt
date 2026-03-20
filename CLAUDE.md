@@ -18,6 +18,8 @@ TMUX=fake PATH=/workspace/testtools/bin:$PATH ./agnt <command>
 
 Test fixtures in `test-workspaces/` are committed to the repo. After any test that modifies them, restore them before committing.
 
+Each step's acceptance criteria must have a corresponding shell script in `tests/` (e.g. `tests/test-attach.sh`). Use port 17717 for test servers to avoid conflicting with a running dev server on the default port.
+
 ## Collaboration style
 
 - Ask clarifying questions when anything is unclear before proceeding.

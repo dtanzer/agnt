@@ -26,7 +26,7 @@
 
 [x] `agnt server status` should only check the health endpoint, nothing else. Then it can also be used from inside a docker/podman container (with `--network host` and workspace mounted). The health endpoint returns all the data that status currently shows. - See specs/12-server-status-health.md
 
-[ ] `agnt start <name>` delegates to the server — instead of sending keys directly, the CLI calls the server which sends the keys. Requires a running server.
+[x] `agnt start <name>` delegates to the server — instead of sending keys directly, the CLI calls the server which sends the keys. Requires a running server. - See specs/13-start-via-server.md
 
 [ ] `agnt attach <name>` — registers a running agent with the server. Captures the pane and enough info to kill it later: a local PID for bare-metal agents, a container ID for containerised agents (distinguished by type or an explicit flag). `agnt server status` lists attached agents.
 

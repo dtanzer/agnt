@@ -21,9 +21,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -78,6 +80,76 @@ func pidRunning(pid int) bool {
 	return proc.Signal(syscall.Signal(0)) == nil
 }
 
+func serverLog(format string, args ...any) {
+	fmt.Printf("[%s] %s\n", time.Now().UTC().Format(time.RFC3339), fmt.Sprintf(format, args...))
+}
+
+func handleAgentStart(configPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Extract agent name from URL path: /agents/{name}/start
+		path := strings.TrimPrefix(r.URL.Path, "/agents/")
+		path = strings.TrimSuffix(path, "/start")
+		name := path
+
+		writeJSONError := func(status int, msg string) {
+			serverLog("start %q: %s", name, msg)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(status)
+			json.NewEncoder(w).Encode(map[string]string{"error": msg})
+		}
+
+		cfg, err := loadConfig(configPath)
+		if err != nil {
+			writeJSONError(http.StatusInternalServerError, fmt.Sprintf("failed to load config: %s", err))
+			return
+		}
+
+		agent, ok := cfg.Agents[name]
+		if !ok {
+			writeJSONError(http.StatusNotFound, fmt.Sprintf("agent %q not found", name))
+			return
+		}
+
+		agentType, ok := cfg.Types[agent.Type]
+		if !ok {
+			writeJSONError(http.StatusInternalServerError, fmt.Sprintf("type %q for agent %q is not defined", agent.Type, name))
+			return
+		}
+
+		cmd, err := resolvePlaceholders(agentType.Run, name, agent.Variant)
+		if err != nil {
+			writeJSONError(http.StatusInternalServerError, fmt.Sprintf("agent %q: %s", name, err))
+			return
+		}
+
+		if !paneExists(agent.Pane) {
+			writeJSONError(http.StatusUnprocessableEntity, fmt.Sprintf("pane %s for agent %q does not exist in the current tmux session", agent.Pane, name))
+			return
+		}
+
+		if err := exec.Command("tmux", "send-keys", "-t", agent.Pane, cmd, "Enter").Run(); err != nil {
+			writeJSONError(http.StatusInternalServerError, fmt.Sprintf("failed to send keys to pane %s: %s", agent.Pane, err))
+			return
+		}
+
+		serverLog("started %q in pane %s: %s", name, agent.Pane, cmd)
+
+		type startResponse struct {
+			Name    string `json:"name"`
+			Pane    string `json:"pane"`
+			Command string `json:"command"`
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(startResponse{Name: name, Pane: agent.Pane, Command: cmd})
+	}
+}
+
 func cmdServerStart(workspaceConfig string, args []string) error {
 	if os.Getenv("TMUX") == "" {
 		return fmt.Errorf("agnt server must be run inside a tmux session")
@@ -101,6 +173,14 @@ func cmdServerStart(workspaceConfig string, args []string) error {
 	statusPath, err := serverStatusPath(workspaceConfig)
 	if err != nil {
 		return err
+	}
+
+	configPath, err := resolveWorkspacePath(workspaceConfig, false)
+	if err != nil {
+		return err
+	}
+	if configPath == "" {
+		return fmt.Errorf("no workspace found (no .agnt.yaml in current directory or any parent up to $HOME)")
 	}
 
 	// Check if already running
@@ -132,6 +212,7 @@ func cmdServerStart(workspaceConfig string, args []string) error {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(resp)
 	})
+	mux.HandleFunc("/agents/", handleAgentStart(configPath))
 
 	// Enforce localhost-only connections
 	srv := &http.Server{

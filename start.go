@@ -15,8 +15,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"os/exec"
+	"net/http"
+	"time"
 )
 
 func cmdStart(explicit string, args []string) error {
@@ -25,42 +27,43 @@ func cmdStart(explicit string, args []string) error {
 	}
 	name := args[0]
 
-	configPath, err := resolveWorkspacePath(explicit, false)
+	statusPath, err := serverStatusPath(explicit)
 	if err != nil {
-		return err
-	}
-	if configPath == "" {
-		return fmt.Errorf("no workspace found (no .agnt.yaml in current directory or any parent up to $HOME)")
+		return fmt.Errorf("agnt start requires a running server — run \"agnt server start\" first")
 	}
 
-	cfg, err := loadConfig(configPath)
+	s, err := readServerStatus(statusPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("agnt start requires a running server — run \"agnt server start\" first")
 	}
 
-	agent, ok := cfg.Agents[name]
-	if !ok {
-		return fmt.Errorf("agent %q not found in %s", name, configPath)
-	}
-
-	agentType, ok := cfg.Types[agent.Type]
-	if !ok {
-		return fmt.Errorf("type %q for agent %q is not defined in %s", agent.Type, name, configPath)
-	}
-
-	cmd, err := resolvePlaceholders(agentType.Run, name, agent.Variant)
+	url := fmt.Sprintf("http://localhost:%d/agents/%s/start", s.Port, name)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Post(url, "application/json", nil)
 	if err != nil {
-		return fmt.Errorf("agent %q: %w", name, err)
+		return fmt.Errorf("failed to contact server: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		type startResponse struct {
+			Name    string `json:"name"`
+			Pane    string `json:"pane"`
+			Command string `json:"command"`
+		}
+		var result startResponse
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return fmt.Errorf("failed to decode server response: %w", err)
+		}
+		fmt.Printf("Starting %s in pane %s: %s\n", result.Name, result.Pane, result.Command)
+		return nil
 	}
 
-	if !paneExists(agent.Pane) {
-		return fmt.Errorf("pane %s for agent %q does not exist in the current tmux session", agent.Pane, name)
+	var errResp struct {
+		Error string `json:"error"`
 	}
-
-	if err := exec.Command("tmux", "send-keys", "-t", agent.Pane, cmd, "Enter").Run(); err != nil {
-		return fmt.Errorf("failed to send keys to pane %s: %w", agent.Pane, err)
+	if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
+		return fmt.Errorf("server returned status %d", resp.StatusCode)
 	}
-
-	fmt.Printf("Starting %s in pane %s: %s\n", name, agent.Pane, cmd)
-	return nil
+	return fmt.Errorf("%s", errResp.Error)
 }

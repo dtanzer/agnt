@@ -1,5 +1,7 @@
 # agnt — Claude Code Instructions
 
+You were probably started by the agnt server. If so, the environment variable `AGENT_NAME` contains your name.
+
 ## Workflow
 
 Steps live in PLAN.md (Done / Current / Next / Later). Specs live in `specs/`.

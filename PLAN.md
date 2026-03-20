@@ -24,11 +24,15 @@
 
 [ ] `agnt server` — starts a background HTTP daemon. `agnt server status` checks if it's running and prints basic info (pid, uptime, listening address). No agent state yet — just liveness.
 
+[ ] `agnt server status` should only check the health endpoint, nothing else. Then it can also be used from inside a docker/podman container. The health endpoint can return all the data that status currently shows.
+
+[ ] Add server port to the placeholder system.
+
+[ ] `agnt start <name>` delegates to the server — instead of sending keys directly, the CLI calls the server which sends the keys. Requires a running server.
+
 [ ] `agnt attach <name>` — registers a running agent with the server. Captures the pane and enough info to kill it later: a local PID for bare-metal agents, a container ID for containerised agents (distinguished by type or an explicit flag). `agnt server status` lists attached agents.
 
 [ ] `agnt kill <name>` — instructs the server to terminate the named agent using the info captured at attach time (SIGTERM for bare-metal, `docker stop` for containers).
-
-[ ] `agnt start <name>` delegates to the server — instead of sending keys directly, the CLI calls the server which sends the keys. Requires a running server.
 
 ## Later
 

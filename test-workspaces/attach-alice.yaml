@@ -1,0 +1,7 @@
+types:
+  podman-claude:
+    run: "echo hello"
+agents:
+  alice:
+    type: podman-claude
+    pane: '0.0'

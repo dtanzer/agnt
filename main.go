@@ -62,6 +62,8 @@ func main() {
 		err = cmdValidate(workspaceConfig)
 	case "start":
 		err = cmdStart(workspaceConfig, cmdArgs)
+	case "attach":
+		err = cmdAttach(workspaceConfig, cmdArgs)
 	case "server":
 		err = cmdServer(workspaceConfig, cmdArgs)
 	default:
@@ -84,6 +86,7 @@ Commands:
   register         Register the current tmux pane as a named agent
   validate         Check the workspace config and verify panes exist
   start            Start a registered agent in its tmux pane
+  attach           Attach the current pane's agent to the server with a podman container
   server           Manage the agnt server (start, status)
   info             Print version and build information
   help             Show this help message

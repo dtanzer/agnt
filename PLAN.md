@@ -28,9 +28,9 @@
 
 [x] `agnt start <name>` delegates to the server — instead of sending keys directly, the CLI calls the server which sends the keys. Requires a running server. - See specs/13-start-via-server.md
 
-[ ] `agnt attach <name>` — registers a running agent with the server. Captures the pane and enough info to kill it later: a local PID for bare-metal agents, a container ID for containerised agents (distinguished by type or an explicit flag). `agnt server status` lists attached agents.
+[x] `agnt attach --podman <container-name>` — registers a running podman agent with the server, recording the container name for later use. Agent name is inferred from the current tmux pane. `agnt server status` lists attached agents. - See specs/14-attach.md
 
-[ ] `agnt kill <name>` — instructs the server to terminate the named agent using the info captured at attach time (SIGTERM for bare-metal, `docker stop` for containers).
+[ ] `agnt stop <name>` — instructs the server to stop the named agent using the info captured at attach time.
 
 ## Later
 
@@ -43,3 +43,4 @@
 - Global type definitions in a home-directory config (e.g. `~/.agnt.yaml`), merged with workspace config at runtime.
 - `agnt start` auto-attaches with the server at startup, if one is running.
 - `agnt server` currently requires `--network host` for container access; revisit if finer-grained networking is needed (e.g. configurable bind address, auth token).
+- Extend `agnt attach` to support bare-metal agents (PID) and docker containers.

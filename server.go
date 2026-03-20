@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -150,6 +151,84 @@ func handleAgentStart(configPath string) http.HandlerFunc {
 	}
 }
 
+// attachedAgent records a podman container name for a named agent.
+type attachedAgent struct {
+	Name   string `json:"name"`
+	Podman string `json:"podman"`
+}
+
+// agentRegistry is the in-memory store of attached agents.
+type agentRegistry struct {
+	mu     sync.Mutex
+	agents map[string]attachedAgent
+}
+
+func newAgentRegistry() *agentRegistry {
+	return &agentRegistry{agents: map[string]attachedAgent{}}
+}
+
+func (r *agentRegistry) attach(name, podman string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.agents[name] = attachedAgent{Name: name, Podman: podman}
+}
+
+func (r *agentRegistry) list() []attachedAgent {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	result := make([]attachedAgent, 0, len(r.agents))
+	for _, a := range r.agents {
+		result = append(result, a)
+	}
+	return result
+}
+
+func handleAgentAttach(configPath string, registry *agentRegistry) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Extract agent name from URL path: /agents/{name}/attach
+		path := strings.TrimPrefix(r.URL.Path, "/agents/")
+		path = strings.TrimSuffix(path, "/attach")
+		name := path
+
+		writeJSONError := func(status int, msg string) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(status)
+			json.NewEncoder(w).Encode(map[string]string{"error": msg})
+		}
+
+		cfg, err := loadConfig(configPath)
+		if err != nil {
+			writeJSONError(http.StatusInternalServerError, fmt.Sprintf("failed to load config: %s", err))
+			return
+		}
+
+		if _, ok := cfg.Agents[name]; !ok {
+			writeJSONError(http.StatusNotFound, fmt.Sprintf("agent %q not found", name))
+			return
+		}
+
+		var body struct {
+			Podman string `json:"podman"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Podman == "" {
+			writeJSONError(http.StatusBadRequest, "missing or invalid podman field")
+			return
+		}
+
+		registry.attach(name, body.Podman)
+		serverLog("attached %q (podman: %s)", name, body.Podman)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(attachedAgent{Name: name, Podman: body.Podman})
+	}
+}
+
 func cmdServerStart(workspaceConfig string, args []string) error {
 	if os.Getenv("TMUX") == "" {
 		return fmt.Errorf("agnt server must be run inside a tmux session")
@@ -192,27 +271,40 @@ func cmdServerStart(workspaceConfig string, args []string) error {
 
 	addr := fmt.Sprintf("localhost:%d", port)
 	startedTime := time.Now().UTC()
+	registry := newAgentRegistry()
 
 	type healthResponse struct {
-		PID     int    `json:"pid"`
-		Port    int    `json:"port"`
-		Started string `json:"started"`
-		Uptime  string `json:"uptime"`
+		PID     int              `json:"pid"`
+		Port    int              `json:"port"`
+		Started string           `json:"started"`
+		Uptime  string           `json:"uptime"`
+		Agents  []attachedAgent  `json:"agents"`
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		agents := registry.list()
+		if agents == nil {
+			agents = []attachedAgent{}
+		}
 		resp := healthResponse{
 			PID:     os.Getpid(),
 			Port:    port,
 			Started: startedTime.Format(time.RFC3339),
 			Uptime:  time.Since(startedTime).Round(time.Second).String(),
+			Agents:  agents,
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(resp)
 	})
-	mux.HandleFunc("/agents/", handleAgentStart(configPath))
+	mux.HandleFunc("/agents/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/attach") {
+			handleAgentAttach(configPath, registry)(w, r)
+		} else {
+			handleAgentStart(configPath)(w, r)
+		}
+	})
 
 	// Enforce localhost-only connections
 	srv := &http.Server{
@@ -277,10 +369,11 @@ func cmdServerStatus(workspaceConfig string) error {
 	defer resp.Body.Close()
 
 	type healthResponse struct {
-		PID     int    `json:"pid"`
-		Port    int    `json:"port"`
-		Started string `json:"started"`
-		Uptime  string `json:"uptime"`
+		PID     int              `json:"pid"`
+		Port    int              `json:"port"`
+		Started string           `json:"started"`
+		Uptime  string           `json:"uptime"`
+		Agents  []attachedAgent  `json:"agents"`
 	}
 	var health healthResponse
 	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
@@ -293,6 +386,17 @@ func cmdServerStatus(workspaceConfig string) error {
 	fmt.Printf("PID:      %d\n", health.PID)
 	fmt.Printf("Address:  localhost:%d\n", health.Port)
 	fmt.Printf("Uptime:   %s\n", health.Uptime)
+	if len(health.Agents) == 0 {
+		fmt.Printf("Agents:   none\n")
+	} else {
+		for i, a := range health.Agents {
+			if i == 0 {
+				fmt.Printf("Agents:   %s (podman: %s)\n", a.Name, a.Podman)
+			} else {
+				fmt.Printf("          %s (podman: %s)\n", a.Name, a.Podman)
+			}
+		}
+	}
 	return nil
 }
 
